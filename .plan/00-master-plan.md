@@ -729,7 +729,7 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 0.1 | Create GitHub repository `cloudbsdorg/bhyve-mcp` | NOT STARTED | | | | | | Initialize with README, LICENSE |
+| 0.1 | Create GitHub repository `cloudbsdorg/bhyve-mcp` | COMPLETED | | 2026-04-24 | 2026-04-24 | | | Pre-existing; initialized with README, LICENSE |
 | 0.2 | Set up Go module and project structure | NOT STARTED | | | | 0.1 | `go.mod`, `Makefile`, `cmd/`, `internal/` | Follow CloudBSD guidelines |
 | 0.3 | Create `.plan` directory with design documents | COMPLETED | | 2026-04-24 | 2026-04-24 | | `.plan/*.md` | This document and supporting plans |
 | 0.4 | Verify libvmmapi headers and library exist on target | COMPLETED | | 2026-04-24 | 2026-04-24 | | `/usr/include/vmmapi.h`, `/usr/lib/libvmmapi.so` | Confirmed on FreeBSD 14.x |
@@ -776,11 +776,22 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 | 3.3 | Implement `disk_create` tool | NOT STARTED | | | | 3.1, 3.2 | `internal/mcp/tools.go` | |
 | 3.4 | Implement `disk_delete` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | `zfs destroy` or `rm` |
 | 3.5 | Implement `disk_list` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | |
-| 3.6 | Implement TAP interface management | NOT STARTED | | | | 0.2 | `internal/net/tap.go` | `ifconfig tap` wrapper |
-| 3.7 | Implement bridge management | NOT STARTED | | | | 3.6 | `internal/net/bridge.go` | `ifconfig bridge` wrapper |
-| 3.8 | Implement `net_switch_create` tool | NOT STARTED | | | | 3.7 | `internal/mcp/tools.go` | |
-| 3.9 | Implement `net_switch_list` tool | NOT STARTED | | | | 3.7 | `internal/mcp/tools.go` | |
-| 3.10 | Implement `net_bridge_attach` tool | NOT STARTED | | | | 3.6, 3.7 | `internal/mcp/tools.go` | |
+| 3.6 | Implement `disk_resize` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | `zfs set volsize` or `qemu-img resize` |
+| 3.7 | Implement `disk_clone` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | ZFS clone or `qemu-img create -b` |
+| 3.8 | Implement ISO download with checksum verification | NOT STARTED | | | | 0.2 | `internal/iso/download.go` | `fetch` or Go `net/http` |
+| 3.9 | Implement `iso_download` tool | NOT STARTED | | | | 3.8 | `internal/mcp/tools.go` | Resume support, `.part` files |
+| 3.10 | Implement `iso_list` and `iso_delete` tools | NOT STARTED | | | | 3.9 | `internal/mcp/tools.go` | Safety checks for active VM refs |
+| 3.11 | Implement cloud-init ISO generation | NOT STARTED | | | | 0.2 | `internal/iso/cloudinit.go` | `mkisofs` wrapper |
+| 3.12 | Implement `iso_cloudinit_create` tool | NOT STARTED | | | | 3.11 | `internal/mcp/tools.go` | |
+| 3.13 | Implement template creation from VM | NOT STARTED | | | | 3.7 | `internal/template/template.go` | ZFS snapshot or QCOW2 backing |
+| 3.14 | Implement `template_create/list/delete` tools | NOT STARTED | | | | 3.13 | `internal/mcp/tools.go` | |
+| 3.15 | Implement `vm_create_from_template` tool | NOT STARTED | | | | 3.14, 2.3 | `internal/mcp/tools.go` | Clone + expand |
+| 3.16 | Implement storage quota enforcement | NOT STARTED | | | | 3.1–3.15 | `internal/disk/quota.go` | Per-category limits |
+| 3.17 | Implement TAP interface management | NOT STARTED | | | | 0.2 | `internal/net/tap.go` | `ifconfig tap` wrapper |
+| 3.18 | Implement bridge management | NOT STARTED | | | | 3.17 | `internal/net/bridge.go` | `ifconfig bridge` wrapper |
+| 3.19 | Implement `net_switch_create` tool | NOT STARTED | | | | 3.18 | `internal/mcp/tools.go` | |
+| 3.20 | Implement `net_switch_list` tool | NOT STARTED | | | | 3.18 | `internal/mcp/tools.go` | |
+| 3.21 | Implement `net_bridge_attach` tool | NOT STARTED | | | | 3.17, 3.18 | `internal/mcp/tools.go` | |
 
 ### Phase 4: Console and Screen Capture
 
@@ -789,12 +800,15 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 | 4.1 | Implement nmdm serial console ring buffer | NOT STARTED | | | | 0.2 | `internal/console/serial.go` | Read /dev/nmdm-*-A |
 | 4.2 | Implement `vm_console_read` tool | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Return ring buffer contents |
 | 4.3 | Implement `vm_send_text` tool | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Write to nmdm |
-| 4.4 | Integrate VNC client library | NOT STARTED | | | | 0.2 | `internal/console/vnc.go` | Go VNC client package |
-| 4.5 | Implement `vm_screenshot` tool | NOT STARTED | | | | 4.4 | `internal/mcp/tools.go` | Capture framebuffer, encode PNG |
-| 4.6 | Implement `vm_send_keys` tool | NOT STARTED | | | | 4.4 | `internal/mcp/tools.go` | VNC key events |
-| 4.7 | Implement VNC port allocation per VM | NOT STARTED | | | | 4.4 | `internal/console/vnc.go` | Dynamic port from base_port |
-| 4.8 | Write integration tests for console I/O | NOT STARTED | | | | 4.3 | `tests/integration/` | Serial read/write cycle |
-| 4.9 | Write integration tests for screenshot | NOT STARTED | | | | 4.5 | `tests/integration/` | Verify PNG output |
+| 4.4 | Implement `vm_console_stream` tool with cursor polling | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Ring buffer + cursor |
+| 4.5 | Implement console log persistence | NOT STARTED | | | | 4.1 | `internal/console/persist.go` | Log rotation, gzip |
+| 4.6 | Implement `vm_console_logs` tool | NOT STARTED | | | | 4.5 | `internal/mcp/tools.go` | Read persisted logs |
+| 4.7 | Integrate VNC client library | NOT STARTED | | | | 0.2 | `internal/console/vnc.go` | Go VNC client package |
+| 4.8 | Implement `vm_screenshot` tool | NOT STARTED | | | | 4.7 | `internal/mcp/tools.go` | Capture framebuffer, encode PNG |
+| 4.9 | Implement `vm_send_keys` tool | NOT STARTED | | | | 4.7 | `internal/mcp/tools.go` | VNC key events |
+| 4.10 | Implement VNC port allocation per VM | NOT STARTED | | | | 4.7 | `internal/console/vnc.go` | Dynamic port from base_port |
+| 4.11 | Write integration tests for console I/O | NOT STARTED | | | | 4.4 | `tests/integration/` | Serial read/write/stream cycle |
+| 4.12 | Write integration tests for screenshot | NOT STARTED | | | | 4.8 | `tests/integration/` | Verify PNG output |
 
 ### Phase 5: FreeBSD Service and Packaging
 
@@ -850,11 +864,14 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 
 - **PCI Passthrough**: Expose `vm_assign_pptdev` via MCP.
 - **Live Snapshots**: Use `vm_snapshot_req` for VM checkpointing.
-- **Cloud-init Integration**: Auto-generate cloud-init ISOs for Linux VMs.
 - **REST API**: HTTP REST layer alongside MCP for non-agent clients.
 - **WebSocket Console**: Browser-based VNC/serial console.
 - **ZFS Snapshot Management**: Expose `zfs snapshot` for VM disks.
 - **Migration Helpers**: Export/import VM configurations.
+- **Torrent Downloads**: BitTorrent support for large ISO distributions.
+- **Delta Updates**: Download only changed blocks for updated ISOs.
+- **Remote Storage**: S3/MinIO backend for ISO/template storage.
+- **Image Registry**: Integration with cloud image registries (AWS AMI, Azure VHD).
 
 ---
 

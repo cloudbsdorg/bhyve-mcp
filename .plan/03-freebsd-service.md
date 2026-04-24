@@ -68,6 +68,7 @@ The service should ensure these are loaded:
 
 - Use `syslog` with facility `local0`.
 - Log file: `/var/log/bhyve-mcp.log`.
+- Console logs: `/var/log/bhyve-mcp/console/<vm_name>.log` (if `console.persist` is enabled).
 - Rotate via `newsyslog`.
 
 ## Security

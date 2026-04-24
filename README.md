@@ -33,6 +33,7 @@ See the [`.plan/`](.plan/) directory for detailed implementation plans:
 - [`06-tech-stack.md`](.plan/06-tech-stack.md) — Tech stack and implementation
 - [`07-libvmmapi-integration.md`](.plan/07-libvmmapi-integration.md) — Direct libvmmapi integration
 - [`08-freebsd-ports.md`](.plan/08-freebsd-ports.md) — FreeBSD ports packaging
+- [`09-iso-and-image-management.md`](.plan/09-iso-and-image-management.md) — ISO, disk image, and template management
 
 ## License
 

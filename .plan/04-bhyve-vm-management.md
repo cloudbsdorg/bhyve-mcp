@@ -76,8 +76,28 @@ bhyve -c 2 -m 4096M -H -w -u \
 
 ### ISO Management
 
+See [`09-iso-and-image-management.md`](09-iso-and-image-management.md) for comprehensive coverage. Summary:
+
 - Store ISOs in `/var/lib/bhyve-mcp/isos/`.
-- Allow `fetch` tool to download ISOs from URLs.
+- Download ISOs from URLs with resume support and checksum verification.
+- Maintain a checksum database in `/var/db/bhyve-mcp/iso-db.yaml`.
+- Generate cloud-init ISOs for unattended Linux provisioning.
+- Enforce per-category storage quotas (`max_iso_storage`, `max_iso_size`).
+- Prevent deletion of ISOs attached to active VM configs.
+
+### Disk Image Management
+
+See [`09-iso-and-image-management.md`](09-iso-and-image-management.md) for comprehensive coverage. Summary:
+
+| Format | Creation | Resize | Clone |
+|--------|----------|--------|-------|
+| Raw | `truncate` | `truncate` | `cp` |
+| QCOW2 | `qemu-img create` | `qemu-img resize` | `qemu-img create -b` |
+| ZFS zvol | `zfs create -V` | `zfs set volsize` | `zfs clone` |
+
+- Support disk cloning for rapid VM duplication.
+- Implement template system for golden master images.
+- Enforce storage quotas per VM and globally.
 
 ## Networking
 

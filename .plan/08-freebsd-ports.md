@@ -52,6 +52,9 @@ post-install:
         ${MKDIR} ${STAGEDIR}/var/db/bhyve-mcp
         ${MKDIR} ${STAGEDIR}/var/lib/bhyve-mcp/isos
         ${MKDIR} ${STAGEDIR}/var/lib/bhyve-mcp/disks
+        ${MKDIR} ${STAGEDIR}/var/lib/bhyve-mcp/templates
+        ${MKDIR} ${STAGEDIR}/var/lib/bhyve-mcp/cloud-init
+        ${MKDIR} ${STAGEDIR}/var/log/bhyve-mcp/console
         ${INSTALL_SCRIPT} ${WRKSRC}/configs/bhyve_mcp ${STAGEDIR}${PREFIX}/etc/rc.d/bhyve_mcp
 
 .include <bsd.port.mk>
@@ -86,6 +89,9 @@ etc/rc.d/bhyve_mcp
 @dir /var/db/bhyve-mcp
 @dir /var/lib/bhyve-mcp/isos
 @dir /var/lib/bhyve-mcp/disks
+@dir /var/lib/bhyve-mcp/templates
+@dir /var/lib/bhyve-mcp/cloud-init
+@dir /var/log/bhyve-mcp/console
 ```
 
 ## rc.d Script Template (`files/bhyve_mcp.in`)

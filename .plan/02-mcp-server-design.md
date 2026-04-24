@@ -34,8 +34,22 @@ The server will advertise the following MCP capabilities:
 |------|-------------|
 | `disk_create` | Create a new disk image (raw, zvol, qcow2) |
 | `disk_resize` | Resize an existing disk |
+| `disk_clone` | Clone a disk from source to destination |
 | `disk_delete` | Delete a disk image |
 | `disk_list` | List disks for a VM |
+
+### ISO and Image Management
+
+| Tool | Description |
+|------|-------------|
+| `iso_download` | Download ISO from URL with optional checksum verification |
+| `iso_list` | List available ISOs with metadata |
+| `iso_delete` | Delete an ISO (with safety checks) |
+| `iso_cloudinit_create` | Generate cloud-init ISO for unattended provisioning |
+| `template_create` | Create a golden master template from a VM |
+| `template_list` | List available templates |
+| `template_delete` | Delete a template |
+| `vm_create_from_template` | Create a new VM from a template |
 
 ### Networking
 
@@ -54,6 +68,8 @@ The server will advertise the following MCP capabilities:
 | `vm_status` | Detailed status of a specific VM |
 | `vm_logs` | Retrieve VM boot logs |
 | `vm_stats` | CPU/memory/disk stats for a running VM |
+| `vm_console_stream` | Stream console output with cursor-based polling |
+| `vm_console_logs` | Retrieve persisted console logs |
 
 ## Error Handling
 
@@ -63,8 +79,12 @@ All tools return standardized MCP error objects:
 - `vm_already_running`
 - `vm_not_running`
 - `disk_not_found`
+- `iso_not_found`
+- `template_not_found`
 - `insufficient_resources`
+- `insufficient_storage`
 - `permission_denied`
+- `checksum_mismatch`
 - `bhyve_error` (wraps stderr from bhyve commands)
 
 ## Logging

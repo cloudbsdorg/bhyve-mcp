@@ -10,8 +10,10 @@ Junie (and other AI agents) running in Linux-compatible environments struggle to
 2. **MCP Compliant**: Implements the Model Context Protocol so Junie can discover and invoke tools.
 3. **VM Lifecycle Management**: Create, start, stop, destroy, and configure bhyve VMs.
 4. **Networking & Storage**: Manage virtual switches, bridges, ZFS volumes, and disk images.
-5. **Observability**: Query VM status, logs, and resource usage.
-6. **Service Integration**: Runs as a FreeBSD rc.d service for reliability.
+5. **ISO & Image Management**: Download, verify, and organize OS installation media and disk images.
+6. **Template System**: Create golden master images for rapid VM cloning.
+7. **Observability**: Query VM status, logs, console streams, and resource usage.
+8. **Service Integration**: Runs as a FreeBSD rc.d service for reliability.
 
 ## Non-Goals
 

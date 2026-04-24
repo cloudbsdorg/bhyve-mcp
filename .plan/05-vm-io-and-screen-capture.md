@@ -108,22 +108,130 @@ For serial:
 - Write raw bytes to `/dev/nmdm-<vm>-A`.
 - Handle line endings (`\r\n` vs `\n`).
 
-## Security Considerations
+## Streaming Console Access
 
-- VNC ports should bind to `127.0.0.1` only.
-- Optionally support VNC password authentication.
-- Rate-limit screenshot requests to avoid CPU exhaustion.
-- Sanitize all input to prevent injection attacks.
+Beyond one-shot read/write, Junie needs continuous, real-time access to VM console output. This is essential for:
+- Watching boot progress
+- Interacting with live installers
+- Debugging kernel panics
+- Running long commands and seeing output stream
 
-## MCP Tool Additions
+### Streaming Architecture
 
-Add these tools to the server design:
+```
++--------+     MCP Tool      +-------------+     Ring Buffer     +-------------+
+| Junie  |  <------------->  | bhyve-mcp   |  <--------------->  | /dev/nmdm   |
+| (any)  |   poll or SSE     | (Go)        |   (per-VM buffer)   | (kernel)    |
++--------+                   +-------------+                     +-------------+
+       ^                            |
+       |                            | WebSocket / SSE
+       |                            v
+       |                     +-------------+
+       |                     | Browser /   |
+       +-------------------->| Remote CLI  |
+                             +-------------+
+```
+
+### Implementation Strategies
+
+#### 1. Polling with Ring Buffer (MCP-native)
+
+Since MCP stdio transport is request/response, use a ring buffer with cursor-based polling:
+
+```yaml
+# MCP tool: vm_console_stream
+name: "vm_console_stream"
+arguments:
+  vm_name: "ubuntu-vm"
+  cursor: 0                    # byte offset into stream; 0 = start from current end
+  timeout_ms: 5000             # max time to wait for new data
+  max_lines: 100               # max lines to return
+```
+
+**Response:**
+```json
+{
+  "lines": [
+    "[    0.000000] Linux version 6.8.0...",
+    "[    0.004000] Command line: BOOT_IMAGE=/boot/vmlinuz...",
+    "..."
+  ],
+  "cursor": 1536,               # new byte offset for next poll
+  "eof": false,                # true if VM stopped
+  "timestamp": "2026-04-24T10:15:30Z"
+}
+```
+
+**Ring Buffer Design:**
+- Per-VM circular buffer in memory (configurable size, default 1 MiB).
+- Separate goroutine reads from `/dev/nmdm-<vm>-A` and writes to buffer.
+- Cursor is absolute byte offset; clients resume from last cursor.
+- Buffer wraps around; old data is overwritten. Clients must poll frequently enough.
+
+#### 2. SSE Transport for Real-Time Streaming
+
+For daemonized mode with SSE transport, push console lines as events:
+
+```
+event: console
+data: {"vm_name":"ubuntu-vm","line":"[OK] Started sshd.","timestamp":"..."}
+
+id: 42
+```
+
+**Benefits:**
+- No polling overhead.
+- Multiple clients can subscribe to same VM console.
+- Natural fit for browser-based or remote CLI access.
+
+#### 3. WebSocket Console (Future)
+
+For non-MCP clients (browsers, remote terminals):
+
+```
+ws://host:8080/v1/console/ubuntu-vm
+```
+
+- Bidirectional: send keystrokes, receive output.
+- Supports ANSI escape sequences for color.
+- Can be fronted by a simple web terminal (e.g., `xterm.js`).
+
+### Console Log Persistence
+
+Optionally persist console output to disk for post-mortem analysis:
+
+```yaml
+# /usr/local/etc/bhyve-mcp/config.yaml
+console:
+  persist: true
+  log_dir: /var/log/bhyve-mcp/console
+  max_log_size: 100M            # per-VM log rotation
+  max_log_files: 10             # number of rotated files to keep
+```
+
+**File naming:** `/var/log/bhyve-mcp/console/<vm_name>.log`
+
+**Rotation:**
+- Rotate when size exceeds `max_log_size`.
+- Compress old logs with `gzip`.
+- Delete logs when VM is destroyed (configurable).
+
+### Console Access Security
+
+1. **Access Control**: Only the VM owner (or `operator` group) can read console.
+2. **Sanitization**: Strip control characters that could corrupt terminal (`\x00`–`\x08`).
+3. **Rate Limiting**: Limit `vm_console_stream` calls to 10/sec per VM to prevent CPU exhaustion.
+4. **Audit Logging**: Log all console access with timestamp and client ID.
+
+### MCP Tool Additions
 
 | Tool | Description |
 |------|-------------|
 | `vm_screenshot` | Capture VM screen as base64 PNG |
 | `vm_send_keys` | Send keystrokes to VM |
 | `vm_send_text` | Send text to serial console |
-| `vm_console_read` | Read recent serial console output |
+| `vm_console_read` | Read recent serial console output (one-shot) |
+| `vm_console_stream` | Stream console output with cursor-based polling |
+| `vm_console_logs` | Retrieve persisted console logs |
 | `vm_file_push` | Push file into VM via VirtFS |
 | `vm_file_pull` | Pull file from VM via VirtFS |

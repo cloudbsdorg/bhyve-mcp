@@ -60,6 +60,8 @@ Per CloudBSD guidelines, we evaluate:
 | `qemu-img` | QCOW2 disk support | `qemu-tools` |
 | `grub2-bhyve` | GRUB bootloader | `grub2-bhyve` |
 | `uefi-edk2-bhyve` | UEFI firmware | `uefi-edk2-bhyve` |
+| `mkisofs` / `genisoimage` | Cloud-init ISO generation | `cdrtools` |
+| `fetch` | ISO download (optional) | base system |
 
 ## Project Structure (Go)
 
@@ -73,8 +75,10 @@ bhyve-mcp/
 │   ├── mcp/          # MCP server setup
 │   ├── vm/           # VM lifecycle management
 │   ├── disk/         # Disk image management
+│   ├── iso/          # ISO download, cloud-init, checksums
+│   ├── template/     # Golden master templates
 │   ├── net/          # Network / bridge / tap
-│   ├── console/      # Serial / VNC console
+│   ├── console/      # Serial / VNC console, streaming, persistence
 │   ├── host/         # Host info, resources
 │   └── store/        # State persistence
 ├── pkg/
@@ -105,6 +109,10 @@ install:
 	mkdir -p /usr/local/etc/bhyve-mcp/vms
 	mkdir -p /var/db/bhyve-mcp
 	mkdir -p /var/lib/bhyve-mcp/isos
+	mkdir -p /var/lib/bhyve-mcp/disks
+	mkdir -p /var/lib/bhyve-mcp/templates
+	mkdir -p /var/lib/bhyve-mcp/cloud-init
+	mkdir -p /var/log/bhyve-mcp/console
 
 clean:
 	rm -rf bin/
@@ -153,4 +161,20 @@ limits:
   max_vms: 10
   max_cpu_per_vm: 8
   max_memory_per_vm: 32768M
+  max_iso_storage: 50G
+  max_disk_storage: 500G
+  max_template_storage: 200G
+  max_iso_size: 10G
+  max_disk_size: 100G
+
+console:
+  persist: true
+  log_dir: /var/log/bhyve-mcp/console
+  max_log_size: 100M
+  max_log_files: 10
+
+cleanup:
+  iso_max_age: 90d
+  template_max_age: 365d
+  dry_run: true
 ```

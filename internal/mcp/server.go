@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"os"
 
 	"github.com/mlapointe/bhyve-mcp/internal/vmmapi"
 )
@@ -21,9 +23,10 @@ func NewServer() *Server {
 	}
 }
 
-// Initialize initializes the server and vmmapi
+// Initialize initializes the server
 func (s *Server) Initialize() error {
-	return vmmapi.Init()
+	// No global initialization needed for vmmapi
+	return nil
 }
 
 // HandleRequest processes an MCP request
@@ -156,7 +159,12 @@ func (s *Server) handleGetVMState(params json.RawMessage) (interface{}, error) {
 
 	vm, exists := s.vms[p.Name]
 	if !exists {
-		return nil, fmt.Errorf("VM not found: %s", p.Name)
+		var err error
+		vm, err = vmmapi.Open(p.Name)
+		if err != nil {
+			return nil, fmt.Errorf("VM not found: %s", p.Name)
+		}
+		s.vms[p.Name] = vm
 	}
 
 	state, err := vm.GetState()
@@ -167,7 +175,7 @@ func (s *Server) handleGetVMState(params json.RawMessage) (interface{}, error) {
 	return map[string]interface{}{
 		"success": true,
 		"name":    p.Name,
-		"state":   state,
+		"state":   state.String(),
 	}, nil
 }
 
@@ -187,6 +195,29 @@ func (s *Server) handleListVMs() (interface{}, error) {
 	}, nil
 }
 
+// Request represents an MCP request
+type Request struct {
+	JSONRPC string          `json:"jsonrpc"`
+	ID      interface{}     `json:"id"`
+	Method  string          `json:"method"`
+	Params  json.RawMessage `json:"params,omitempty"`
+}
+
+// Response represents an MCP response
+type Response struct {
+	JSONRPC string      `json:"jsonrpc"`
+	ID      interface{} `json:"id"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   *Error      `json:"error,omitempty"`
+}
+
+// Error represents an MCP error
+type Error struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 // Run starts the MCP server
 func (s *Server) Run() error {
 	log.Println("Starting bhyve MCP server...")
@@ -196,15 +227,36 @@ func (s *Server) Run() error {
 	log.Println("bhyve MCP server initialized")
 
 	// Read requests from stdin and write responses to stdout
-	decoder := json.NewDecoder(nil)
-	encoder := json.NewEncoder(nil)
+	decoder := json.NewDecoder(os.Stdin)
+	encoder := json.NewEncoder(os.Stdout)
 
 	for {
-		// This will be implemented with proper stdin/stdout handling
-		// For now, this is a placeholder
-		select {
-		case <-context.Background().Done():
-			return context.Background().Err()
+		var req Request
+		if err := decoder.Decode(&req); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return fmt.Errorf("failed to decode request: %w", err)
+		}
+
+		result, err := s.HandleRequest(context.Background(), req.Method, req.Params)
+
+		resp := Response{
+			JSONRPC: "2.0",
+			ID:      req.ID,
+		}
+
+		if err != nil {
+			resp.Error = &Error{
+				Code:    -32000,
+				Message: err.Error(),
+			}
+		} else {
+			resp.Result = result
+		}
+
+		if err := encoder.Encode(resp); err != nil {
+			return fmt.Errorf("failed to encode response: %w", err)
 		}
 	}
 }

@@ -25,9 +25,9 @@ func Create(name string) (int, error) {
 
 	ret := C.vm_create(cName)
 	if ret != 0 {
-		return ret, fmt.Errorf("failed to create VM: %s (error: %d)", name, ret)
+		return int(ret), fmt.Errorf("failed to create VM: %s (error: %d)", name, ret)
 	}
-	return ret, nil
+	return int(ret), nil
 }
 
 // Open opens an existing virtual machine
@@ -95,7 +95,7 @@ func (vm *VM) GetState() (State, error) {
 
 // SetupMemory sets up memory for the VM
 func (vm *VM) SetupMemory(size uint64) error {
-	ret := C.vm_setup_memory(vm.handle, C.size_t(size), C.VM_MMAP_STYLE_SHARED)
+	ret := C.vm_setup_memory(vm.handle, C.size_t(size), C.VM_MMAP_ALL)
 	if ret != 0 {
 		return fmt.Errorf("failed to setup memory: %d", ret)
 	}

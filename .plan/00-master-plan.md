@@ -730,8 +730,10 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
 | 0.1 | Create GitHub repository `cloudbsdorg/bhyve-mcp` | COMPLETED | | 2026-04-24 | 2026-04-24 | | | Pre-existing; initialized with README, LICENSE |
-| 0.2 | Set up Go module and project structure | NOT STARTED | | | | 0.1 | `go.mod`, `Makefile`, `cmd/`, `internal/` | Follow CloudBSD guidelines |
+| 0.2 | Set up Go module and project structure | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.1 | `go.mod`, `cmd/`, `internal/`, `pkg/` | Follow CloudBSD guidelines |
 | 0.3 | Create `.plan` directory with design documents | COMPLETED | | 2026-04-24 | 2026-04-24 | | `.plan/*.md` | This document and supporting plans |
+| 0.7 | Create FreeBSD-compatible Makefile | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `Makefile` | Build, test, install, upgrade, clean targets with CGO support |
+| 0.8 | Create GoLand/IntelliJ run configurations | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `.idea/runConfigurations/*.xml` | Run, Debug, Test configurations with CGO environment |
 | 0.4 | Verify libvmmapi headers and library exist on target | COMPLETED | | 2026-04-24 | 2026-04-24 | | `/usr/include/vmmapi.h`, `/usr/lib/libvmmapi.so` | Confirmed on FreeBSD 14.x |
 | 0.5 | Set up bhyve test VM environment | NOT STARTED | | | | 0.2 | | Need nested bhyve or dedicated host |
 | 0.6 | Document baseline host capabilities | NOT STARTED | | | | 0.5 | | CPU, memory, bhyve feature flags |
@@ -740,30 +742,30 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 1.1 | Implement CGO bindings for libvmmapi core | NOT STARTED | | | | 0.2 | `internal/vmmapi/` | vm_create, vm_open, vm_destroy, vm_close |
-| 1.2 | Implement CGO bindings for vCPU control | NOT STARTED | | | | 1.1 | `internal/vmmapi/` | vm_vcpu_open, vm_set/get_register, vcpu_reset |
-| 1.3 | Implement CGO bindings for VM statistics | NOT STARTED | | | | 1.1 | `internal/vmmapi/` | vm_get_stats, vm_get_stat_desc, vm_active_cpus |
+| 1.1 | Implement CGO bindings for libvmmapi core | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/vmmapi/vmmapi.go` | vm_create, vm_open, vm_destroy, vm_close, vm_get_state, vm_setup_memory |
+| 1.2 | Implement CGO bindings for vCPU control | PARTIAL | | 2026-04-24 | 2026-04-24 | 1.1 | `internal/vmmapi/vmmapi.go` | Basic vCPU support via vm_run, full register access TBD |
+| 1.3 | Implement CGO bindings for VM statistics | PARTIAL | | 2026-04-24 | 2026-04-24 | 1.1 | `internal/vmmapi/vmmapi.go` | vm_get_state implemented, full stats TBD |
 | 1.4 | Implement CGO bindings for interrupts | NOT STARTED | | | | 1.1 | `internal/vmmapi/` | vm_inject_exception, vm_lapic_irq, vm_inject_nmi |
-| 1.5 | Create error mapping layer (C errno → Go error) | NOT STARTED | | | | 1.1 | `internal/vmmapi/errors.go` | Map ENOENT, EEXIST, EBUSY, ENOMEM, EPERM |
-| 1.6 | Implement configuration parser (YAML) | NOT STARTED | | | | 0.2 | `internal/config/` | Global config + per-VM config |
-| 1.7 | Implement state persistence (SQLite or JSON) | NOT STARTED | | | | 1.6 | `internal/store/` | VM state, runtime info |
+| 1.5 | Create error mapping layer (C errno → Go error) | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1 | `internal/vmmapi/vmmapi.go` | Go error wrapping of C errno |
+| 1.6 | Implement configuration parser (YAML) | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/config/config.go` | Global config + per-VM config with YAML support |
+| 1.7 | Implement state persistence (SQLite or JSON) | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.6 | `internal/store/store.go` | JSON-based databases for ISO and template metadata |
 | 1.8 | Implement logging framework | NOT STARTED | | | | 0.2 | `internal/log/` | Structured logs, syslog support |
-| 1.9 | Write unit tests for vmmapi bindings | NOT STARTED | | | | 1.5 | `internal/vmmapi/*_test.go` | Mock libvmmapi where possible |
+| 1.9 | Write unit tests for vmmapi bindings | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.5 | `internal/vmmapi/vmmapi_test.go` | TestCreate, TestStateString |
 | 1.10 | Write unit tests for config parser | NOT STARTED | | | | 1.6 | `internal/config/*_test.go` | |
 
 ### Phase 2: MCP Server and Tools
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 2.1 | Set up MCP server with stdio transport | NOT STARTED | | | | 0.2 | `internal/mcp/server.go` | Use `github.com/mark3labs/mcp-go` |
-| 2.2 | Implement `vm_list` tool | NOT STARTED | | | | 1.1, 2.1 | `internal/mcp/tools.go` | List /dev/vmm entries |
-| 2.3 | Implement `vm_create` tool | NOT STARTED | | | | 1.1, 2.1 | `internal/mcp/tools.go` | Create config + vm_create() |
-| 2.4 | Implement `vm_start` tool | NOT STARTED | | | | 2.3 | `internal/mcp/tools.go` | Fork bhyve with device model |
-| 2.5 | Implement `vm_stop` tool | NOT STARTED | | | | 1.1, 2.1 | `internal/mcp/tools.go` | vm_suspend() |
-| 2.6 | Implement `vm_force_stop` tool | NOT STARTED | | | | 1.1, 2.1 | `internal/mcp/tools.go` | vm_destroy() |
-| 2.7 | Implement `vm_destroy` tool | NOT STARTED | | | | 1.1, 2.1 | `internal/mcp/tools.go` | vm_destroy() + cleanup |
-| 2.8 | Implement `vm_status` tool | NOT STARTED | | | | 1.3, 2.1 | `internal/mcp/tools.go` | vm_get_stats() |
-| 2.9 | Implement `host_info` tool | NOT STARTED | | | | 2.1 | `internal/mcp/tools.go` | sysctl queries |
+| 2.1 | Set up MCP server with stdio transport | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/mcp/server.go` | JSON-RPC 2.0 protocol with stdin/stdout |
+| 2.2 | Implement `vm_list` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1, 2.1 | `internal/mcp/server.go` | List VMs from state store |
+| 2.3 | Implement `vm_create` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1, 2.1 | `internal/mcp/server.go` | Create VM config and initialize via libvmmapi |
+| 2.4 | Implement `vm_start` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 2.3 | `internal/mcp/server.go` | Fork bhyve process with device model |
+| 2.5 | Implement `vm_stop` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1, 2.1 | `internal/mcp/server.go` | Stop bhyve process gracefully |
+| 2.6 | Implement `vm_force_stop` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1, 2.1 | `internal/mcp/server.go` | Force kill bhyve process |
+| 2.7 | Implement `vm_destroy` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.1, 2.1 | `internal/mcp/server.go` | vm_destroy() + cleanup files |
+| 2.8 | Implement `vm_status` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 1.3, 2.1 | `internal/mcp/server.go` | Query VM state and process status |
+| 2.9 | Implement `host_info` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 2.1 | `internal/mcp/server.go` | Host capabilities and bhyve support check |
 | 2.10 | Implement MCP logging notifications | NOT STARTED | | | | 1.8, 2.1 | `internal/mcp/server.go` | Emit logging/message |
 | 2.11 | Write integration tests for VM lifecycle | NOT STARTED | | | | 2.7 | `tests/integration/` | Create, start, stop, destroy cycle |
 
@@ -771,41 +773,41 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 3.1 | Implement ZFS zvol creation | NOT STARTED | | | | 0.2 | `internal/disk/zfs.go` | `zfs create -V` wrapper |
-| 3.2 | Implement file-based disk creation | NOT STARTED | | | | 0.2 | `internal/disk/file.go` | `truncate` wrapper |
-| 3.3 | Implement `disk_create` tool | NOT STARTED | | | | 3.1, 3.2 | `internal/mcp/tools.go` | |
-| 3.4 | Implement `disk_delete` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | `zfs destroy` or `rm` |
-| 3.5 | Implement `disk_list` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | |
-| 3.6 | Implement `disk_resize` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | `zfs set volsize` or `qemu-img resize` |
-| 3.7 | Implement `disk_clone` tool | NOT STARTED | | | | 3.3 | `internal/mcp/tools.go` | ZFS clone or `qemu-img create -b` |
-| 3.8 | Implement ISO download with checksum verification | NOT STARTED | | | | 0.2 | `internal/iso/download.go` | `fetch` or Go `net/http` |
-| 3.9 | Implement `iso_download` tool | NOT STARTED | | | | 3.8 | `internal/mcp/tools.go` | Resume support, `.part` files |
-| 3.10 | Implement `iso_list` and `iso_delete` tools | NOT STARTED | | | | 3.9 | `internal/mcp/tools.go` | Safety checks for active VM refs |
+| 3.1 | Implement ZFS zvol creation | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/disk/manager.go` | ZFS zvol backend support |
+| 3.2 | Implement file-based disk creation | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/disk/manager.go` | Raw and qcow2 file backends |
+| 3.3 | Implement `disk_create` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.1, 3.2 | `internal/mcp/server.go` | Create disks with raw/qcow2/zvol backends |
+| 3.4 | Implement `disk_delete` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.3 | `internal/mcp/server.go` | Delete disk images and zvols |
+| 3.5 | Implement `disk_list` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.3 | `internal/mcp/server.go` | List all managed disks |
+| 3.6 | Implement `disk_resize` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.3 | `internal/mcp/server.go` | Resize disk images |
+| 3.7 | Implement `disk_clone` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.3 | `internal/mcp/server.go` | Clone disks with backing file support |
+| 3.8 | Implement ISO download with checksum verification | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/iso/downloader.go` | HTTP/HTTPS with SHA256 verification |
+| 3.9 | Implement `iso_download` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.8 | `internal/mcp/server.go` | Resume support, checksum validation |
+| 3.10 | Implement `iso_list` and `iso_delete` tools | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.9 | `internal/mcp/server.go` | Safety checks for active VM refs |
 | 3.11 | Implement cloud-init ISO generation | NOT STARTED | | | | 0.2 | `internal/iso/cloudinit.go` | `mkisofs` wrapper |
-| 3.12 | Implement `iso_cloudinit_create` tool | NOT STARTED | | | | 3.11 | `internal/mcp/tools.go` | |
+| 3.12 | Implement `iso_cloudinit_create` tool | NOT STARTED | | | | 3.11 | `internal/mcp/server.go` | |
 | 3.13 | Implement template creation from VM | NOT STARTED | | | | 3.7 | `internal/template/template.go` | ZFS snapshot or QCOW2 backing |
-| 3.14 | Implement `template_create/list/delete` tools | NOT STARTED | | | | 3.13 | `internal/mcp/tools.go` | |
-| 3.15 | Implement `vm_create_from_template` tool | NOT STARTED | | | | 3.14, 2.3 | `internal/mcp/tools.go` | Clone + expand |
+| 3.14 | Implement `template_create/list/delete` tools | NOT STARTED | | | | 3.13 | `internal/mcp/server.go` | |
+| 3.15 | Implement `vm_create_from_template` tool | NOT STARTED | | | | 3.14, 2.3 | `internal/mcp/server.go` | Clone + expand |
 | 3.16 | Implement storage quota enforcement | NOT STARTED | | | | 3.1–3.15 | `internal/disk/quota.go` | Per-category limits |
-| 3.17 | Implement TAP interface management | NOT STARTED | | | | 0.2 | `internal/net/tap.go` | `ifconfig tap` wrapper |
-| 3.18 | Implement bridge management | NOT STARTED | | | | 3.17 | `internal/net/bridge.go` | `ifconfig bridge` wrapper |
-| 3.19 | Implement `net_switch_create` tool | NOT STARTED | | | | 3.18 | `internal/mcp/tools.go` | |
-| 3.20 | Implement `net_switch_list` tool | NOT STARTED | | | | 3.18 | `internal/mcp/tools.go` | |
-| 3.21 | Implement `net_bridge_attach` tool | NOT STARTED | | | | 3.17, 3.18 | `internal/mcp/tools.go` | |
+| 3.17 | Implement TAP interface management | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/net/manager.go` | TAP interface creation |
+| 3.18 | Implement bridge management | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.17 | `internal/net/manager.go` | Bridge/virtual switch management |
+| 3.19 | Implement `net_switch_create` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.18 | `internal/mcp/server.go` | Create virtual switches |
+| 3.20 | Implement `net_switch_list` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.18 | `internal/mcp/server.go` | List network switches |
+| 3.21 | Implement `net_bridge_attach` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 3.17, 3.18 | `internal/mcp/server.go` | Attach TAP to bridges |
 
 ### Phase 4: Console and Screen Capture
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 4.1 | Implement nmdm serial console ring buffer | NOT STARTED | | | | 0.2 | `internal/console/serial.go` | Read /dev/nmdm-*-A |
-| 4.2 | Implement `vm_console_read` tool | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Return ring buffer contents |
-| 4.3 | Implement `vm_send_text` tool | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Write to nmdm |
-| 4.4 | Implement `vm_console_stream` tool with cursor polling | NOT STARTED | | | | 4.1 | `internal/mcp/tools.go` | Ring buffer + cursor |
-| 4.5 | Implement console log persistence | NOT STARTED | | | | 4.1 | `internal/console/persist.go` | Log rotation, gzip |
-| 4.6 | Implement `vm_console_logs` tool | NOT STARTED | | | | 4.5 | `internal/mcp/tools.go` | Read persisted logs |
+| 4.1 | Implement nmdm serial console ring buffer | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `internal/console/manager.go` | Serial console session management |
+| 4.2 | Implement `vm_console_read` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 4.1 | `internal/mcp/server.go` | Read console output |
+| 4.3 | Implement `vm_send_text` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 4.1 | `internal/mcp/server.go` | Send text to console |
+| 4.4 | Implement `vm_console_stream` tool with cursor polling | NOT STARTED | | | | 4.1 | `internal/mcp/server.go` | Ring buffer + cursor |
+| 4.5 | Implement console log persistence | COMPLETED | | 2026-04-24 | 2026-04-24 | 4.1 | `internal/console/manager.go` | Log rotation support |
+| 4.6 | Implement `vm_console_logs` tool | COMPLETED | | 2026-04-24 | 2026-04-24 | 4.5 | `internal/mcp/server.go` | Read persisted logs |
 | 4.7 | Integrate VNC client library | NOT STARTED | | | | 0.2 | `internal/console/vnc.go` | Go VNC client package |
-| 4.8 | Implement `vm_screenshot` tool | NOT STARTED | | | | 4.7 | `internal/mcp/tools.go` | Capture framebuffer, encode PNG |
-| 4.9 | Implement `vm_send_keys` tool | NOT STARTED | | | | 4.7 | `internal/mcp/tools.go` | VNC key events |
+| 4.8 | Implement `vm_screenshot` tool | NOT STARTED | | | | 4.7 | `internal/mcp/server.go` | Capture framebuffer, encode PNG |
+| 4.9 | Implement `vm_send_keys` tool | NOT STARTED | | | | 4.7 | `internal/mcp/server.go` | VNC key events |
 | 4.10 | Implement VNC port allocation per VM | NOT STARTED | | | | 4.7 | `internal/console/vnc.go` | Dynamic port from base_port |
 | 4.11 | Write integration tests for console I/O | NOT STARTED | | | | 4.4 | `tests/integration/` | Serial read/write/stream cycle |
 | 4.12 | Write integration tests for screenshot | NOT STARTED | | | | 4.8 | `tests/integration/` | Verify PNG output |
@@ -814,15 +816,17 @@ This section is the master checklist for implementing bhyve-mcp. Each task inclu
 
 | # | Task | Status | Owner | Start | End | Dependencies | Files | Notes |
 |---|------|--------|-------|-------|-----|--------------|-------|-------|
-| 5.1 | Create rc.d service script | NOT STARTED | | | | 0.2 | `configs/bhyve_mcp` | Follow FreeBSD rc.subr style |
-| 5.2 | Create example configuration files | NOT STARTED | | | | 1.6 | `configs/config.yaml` | Global + VM example |
-| 5.3 | Create FreeBSD port Makefile | NOT STARTED | | | | 5.1, 5.2 | `ports/sysutils/bhyve-mcp/Makefile` | |
-| 5.4 | Create pkg-descr | NOT STARTED | | | | 5.3 | `ports/sysutils/bhyve-mcp/pkg-descr` | Under 80 chars/line |
-| 5.5 | Create pkg-plist | NOT STARTED | | | | 5.3 | `ports/sysutils/bhyve-mcp/pkg-plist` | |
-| 5.6 | Create port rc.d template | NOT STARTED | | | | 5.1 | `ports/sysutils/bhyve-mcp/files/bhyve_mcp.in` | SUB_LIST macros |
-| 5.7 | Test port with `make package` | NOT STARTED | | | | 5.6 | | In poudriere or local |
-| 5.8 | Test port with `make install` | NOT STARTED | | | | 5.7 | | Verify files installed |
-| 5.9 | Run `portlint` and fix warnings | NOT STARTED | | | | 5.8 | | Must pass cleanly |
+| 5.1 | Create development Makefile | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `Makefile` | FreeBSD-compatible make with build/test/install/upgrade/clean targets |
+| 5.2 | Create IDE run configurations | COMPLETED | | 2026-04-24 | 2026-04-24 | 0.2 | `.idea/runConfigurations/` | GoLand/IntelliJ configurations for Run, Debug, Test |
+| 5.3 | Create rc.d service script | NOT STARTED | | | | 0.2 | `configs/bhyve_mcp` | Follow FreeBSD rc.subr style |
+| 5.4 | Create example configuration files | NOT STARTED | | | | 1.6 | `configs/config.yaml` | Global + VM example |
+| 5.5 | Create FreeBSD port Makefile | NOT STARTED | | | | 5.3, 5.4 | `ports/sysutils/bhyve-mcp/Makefile` | Ports collection packaging |
+| 5.6 | Create pkg-descr | NOT STARTED | | | | 5.5 | `ports/sysutils/bhyve-mcp/pkg-descr` | Under 80 chars/line |
+| 5.7 | Create pkg-plist | NOT STARTED | | | | 5.5 | `ports/sysutils/bhyve-mcp/pkg-plist` | |
+| 5.8 | Create port rc.d template | NOT STARTED | | | | 5.3 | `ports/sysutils/bhyve-mcp/files/bhyve_mcp.in` | SUB_LIST macros |
+| 5.9 | Test port with `make package` | NOT STARTED | | | | 5.8 | | In poudriere or local |
+| 5.10 | Test port with `make install` | NOT STARTED | | | | 5.9 | | Verify files installed |
+| 5.11 | Run `portlint` and fix warnings | NOT STARTED | | | | 5.10 | | Must pass cleanly |
 
 ### Phase 6: Documentation and Man Pages
 

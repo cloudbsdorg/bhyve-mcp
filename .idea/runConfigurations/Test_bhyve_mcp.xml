@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager" state="7">
+  <configuration default="false" name="Test bhyve-mcp" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="bhyve-mcp" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="" />
+    <kind value="DIRECTORY" />
+    <directory value="$PROJECT_DIR$" />
+    <package value="github.com/mlapointe/bhyve-mcp/..." />
+    <exec_environment>
+      <env name="CGO_ENABLED" value="1" />
+      <env name="CGO_CFLAGS" value="-I/usr/include" />
+      <env name="CGO_LDFLAGS" value="-L/usr/lib -lvmmapi" />
+    </exec_environment>
+    <method v="2" />
+  </configuration>
+</component>

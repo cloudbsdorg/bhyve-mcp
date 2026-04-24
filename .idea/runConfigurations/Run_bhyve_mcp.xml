@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager" state="7">
+  <configuration default="false" name="Run bhyve-mcp" type="GoApplicationRunConfiguration" factoryName="Go Application">
+    <module name="bhyve-mcp" />
+    <working_directory value="$PROJECT_DIR$" />
+    <parameters value="" />
+    <kind value="PACKAGE" />
+    <package value="github.com/mlapointe/bhyve-mcp/cmd/bhyve-mcp" />
+    <directory value="$PROJECT_DIR$" />
+    <filePath value="$PROJECT_DIR$/cmd/bhyve-mcp/main.go" />
+    <exec_environment>
+      <env name="CGO_ENABLED" value="1" />
+      <env name="CGO_CFLAGS" value="-I/usr/include" />
+      <env name="CGO_LDFLAGS" value="-L/usr/lib -lvmmapi" />
+    </exec_environment>
+    <method v="2" />
+  </configuration>
+</component>
